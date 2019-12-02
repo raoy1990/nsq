@@ -307,7 +307,7 @@ func (c *Channel) put(m *Message) error {
 	select {
 	case c.memoryMsgChan <- m:
 	default:
-		b := bufferPoolGet()
+		/*b := bufferPoolGet()
 		err := writeMessageToBackend(b, m, c.backend)
 		bufferPoolPut(b)
 		c.ctx.nsqd.SetHealth(err)
@@ -315,7 +315,7 @@ func (c *Channel) put(m *Message) error {
 			c.ctx.nsqd.logf(LOG_ERROR, "CHANNEL(%s): failed to write message to backend - %s",
 				c.name, err)
 			return err
-		}
+		}*/
 	}
 	return nil
 }

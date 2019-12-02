@@ -25,7 +25,7 @@ func TestPutMessage(t *testing.T) {
 	channel1 := topic.GetChannel("ch")
 
 	var id MessageID
-	msg := NewMessage(id, []byte("test"))
+	msg := NewMessage(id, 0, []byte("test"))
 	topic.PutMessage(msg)
 
 	outputMsg := <-channel1.memoryMsgChan
@@ -47,7 +47,7 @@ func TestPutMessage2Chan(t *testing.T) {
 	channel2 := topic.GetChannel("ch2")
 
 	var id MessageID
-	msg := NewMessage(id, []byte("test"))
+	msg := NewMessage(id, 0, []byte("test"))
 	topic.PutMessage(msg)
 
 	outputMsg1 := <-channel1.memoryMsgChan
@@ -75,7 +75,7 @@ func TestInFlightWorker(t *testing.T) {
 	channel := topic.GetChannel("channel")
 
 	for i := 0; i < count; i++ {
-		msg := NewMessage(topic.GenerateID(), []byte("test"))
+		msg := NewMessage(topic.GenerateID(), 0, []byte("test"))
 		channel.StartInFlightTimeout(msg, 0, opts.MsgTimeout)
 	}
 
@@ -117,7 +117,7 @@ func TestChannelEmpty(t *testing.T) {
 
 	msgs := make([]*Message, 0, 25)
 	for i := 0; i < 25; i++ {
-		msg := NewMessage(topic.GenerateID(), []byte("test"))
+		msg := NewMessage(topic.GenerateID(), 0, []byte("test"))
 		channel.StartInFlightTimeout(msg, 0, opts.MsgTimeout)
 		msgs = append(msgs, msg)
 	}
@@ -156,7 +156,7 @@ func TestChannelEmptyConsumer(t *testing.T) {
 	test.Equal(t, err, nil)
 
 	for i := 0; i < 25; i++ {
-		msg := NewMessage(topic.GenerateID(), []byte("test"))
+		msg := NewMessage(topic.GenerateID(), 0, []byte("test"))
 		channel.StartInFlightTimeout(msg, 0, opts.MsgTimeout)
 		client.SendingMessage()
 	}
@@ -215,15 +215,15 @@ func TestChannelHealth(t *testing.T) {
 
 	channel.backend = &errorBackendQueue{}
 
-	msg := NewMessage(topic.GenerateID(), make([]byte, 100))
+	msg := NewMessage(topic.GenerateID(), 0, make([]byte, 100))
 	err := channel.PutMessage(msg)
 	test.Nil(t, err)
 
-	msg = NewMessage(topic.GenerateID(), make([]byte, 100))
+	msg = NewMessage(topic.GenerateID(), 0, make([]byte, 100))
 	err = channel.PutMessage(msg)
 	test.Nil(t, err)
 
-	msg = NewMessage(topic.GenerateID(), make([]byte, 100))
+	msg = NewMessage(topic.GenerateID(), 0, make([]byte, 100))
 	err = channel.PutMessage(msg)
 	test.NotNil(t, err)
 
@@ -237,7 +237,7 @@ func TestChannelHealth(t *testing.T) {
 
 	channel.backend = &errorRecoveredBackendQueue{}
 
-	msg = NewMessage(topic.GenerateID(), make([]byte, 100))
+	msg = NewMessage(topic.GenerateID(), 0, make([]byte, 100))
 	err = channel.PutMessage(msg)
 	test.Nil(t, err)
 

@@ -222,7 +222,15 @@ func (s *httpServer) doPUB(w http.ResponseWriter, req *http.Request, ps httprout
 		}
 	}
 
-	msg := NewMessage(topic.GenerateID(), body)
+	var msgGroup int64 = 0
+	if group, ok := reqParams["group"]; ok {
+		msgGroup, err = strconv.ParseInt(group[0], 10, 64)
+		if err != nil {
+			return nil, http_api.Err{400, "INVALID_GROUP"}
+		}
+	}
+
+	msg := NewMessage(topic.GenerateID(), int(msgGroup), body)
 	msg.deferred = deferred
 	err = topic.PutMessage(msg)
 	if err != nil {
@@ -297,7 +305,7 @@ func (s *httpServer) doMPUB(w http.ResponseWriter, req *http.Request, ps httprou
 				return nil, http_api.Err{413, "MSG_TOO_BIG"}
 			}
 
-			msg := NewMessage(topic.GenerateID(), block)
+			msg := NewMessage(topic.GenerateID(), 0, block)
 			msgs = append(msgs, msg)
 		}
 	}

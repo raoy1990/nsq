@@ -221,6 +221,8 @@ func (t *Topic) put(m *Message) error {
 	select {
 	case t.memoryMsgChan <- m:
 	default:
+		//ignore the msg when the memory channel is full
+		/*default:
 		b := bufferPoolGet()
 		err := writeMessageToBackend(b, m, t.backend)
 		bufferPoolPut(b)
@@ -230,7 +232,7 @@ func (t *Topic) put(m *Message) error {
 				"TOPIC(%s) ERROR: failed to write message to backend - %s",
 				t.name, err)
 			return err
-		}
+		}*/
 	}
 	return nil
 }
@@ -243,11 +245,11 @@ func (t *Topic) Depth() int64 {
 // writes messages to every channel for this topic
 func (t *Topic) messagePump() {
 	var msg *Message
-	var buf []byte
-	var err error
+	//var buf []byte
+	//var err error
 	var chans []*Channel
 	var memoryMsgChan chan *Message
-	var backendChan chan []byte
+	//var backendChan chan []byte
 
 	// do not pass messages before Start(), but avoid blocking Pause() or GetChannel()
 	for {
@@ -269,19 +271,20 @@ func (t *Topic) messagePump() {
 	t.RUnlock()
 	if len(chans) > 0 && !t.IsPaused() {
 		memoryMsgChan = t.memoryMsgChan
-		backendChan = t.backend.ReadChan()
+		//backendChan = t.backend.ReadChan()
 	}
 
 	// main message loop
 	for {
 		select {
 		case msg = <-memoryMsgChan:
-		case buf = <-backendChan:
-			msg, err = decodeMessage(buf)
-			if err != nil {
-				t.ctx.nsqd.logf(LOG_ERROR, "failed to decode message - %s", err)
-				continue
-			}
+			// delete the logic to used the backend data
+			/*		case buf = <-backendChan:
+					msg, err = decodeMessage(buf)
+					if err != nil {
+						t.ctx.nsqd.logf(LOG_ERROR, "failed to decode message - %s", err)
+						continue
+					}*/
 		case <-t.channelUpdateChan:
 			chans = chans[:0]
 			t.RLock()
@@ -291,19 +294,19 @@ func (t *Topic) messagePump() {
 			t.RUnlock()
 			if len(chans) == 0 || t.IsPaused() {
 				memoryMsgChan = nil
-				backendChan = nil
+				//backendChan = nil
 			} else {
 				memoryMsgChan = t.memoryMsgChan
-				backendChan = t.backend.ReadChan()
+				//backendChan = t.backend.ReadChan()
 			}
 			continue
 		case <-t.pauseChan:
 			if len(chans) == 0 || t.IsPaused() {
 				memoryMsgChan = nil
-				backendChan = nil
+				//backendChan = nil
 			} else {
 				memoryMsgChan = t.memoryMsgChan
-				backendChan = t.backend.ReadChan()
+				//backendChan = t.backend.ReadChan()
 			}
 			continue
 		case <-t.exitChan:
@@ -317,7 +320,7 @@ func (t *Topic) messagePump() {
 			// fastpath to avoid copy if its the first channel
 			// (the topic already created the first copy)
 			if i > 0 {
-				chanMsg = NewMessage(msg.ID, msg.Body)
+				chanMsg = NewMessage(msg.ID, 0, msg.Body)
 				chanMsg.Timestamp = msg.Timestamp
 				chanMsg.deferred = msg.deferred
 			}

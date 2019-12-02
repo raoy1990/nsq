@@ -23,12 +23,12 @@ func TestStats(t *testing.T) {
 
 	topicName := "test_stats" + strconv.Itoa(int(time.Now().Unix()))
 	topic := nsqd.GetTopic(topicName)
-	msg := NewMessage(topic.GenerateID(), []byte("test body"))
+	msg := NewMessage(topic.GenerateID(), 0, []byte("test body"))
 	topic.PutMessage(msg)
 
 	accompanyTopicName := "accompany_test_stats" + strconv.Itoa(int(time.Now().Unix()))
 	accompanyTopic := nsqd.GetTopic(accompanyTopicName)
-	msg = NewMessage(accompanyTopic.GenerateID(), []byte("accompany test body"))
+	msg = NewMessage(accompanyTopic.GenerateID(), 0, []byte("accompany test body"))
 	accompanyTopic.PutMessage(msg)
 
 	conn, err := mustConnectNSQD(tcpAddr)
@@ -134,7 +134,7 @@ func TestStatsChannelLocking(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		for i := 0; i < 25; i++ {
-			msg := NewMessage(topic.GenerateID(), []byte("test"))
+			msg := NewMessage(topic.GenerateID(), 0, []byte("test"))
 			topic.PutMessage(msg)
 			channel.StartInFlightTimeout(msg, 0, opts.MsgTimeout)
 		}

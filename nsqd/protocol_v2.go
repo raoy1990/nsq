@@ -799,7 +799,7 @@ func (p *protocolV2) PUB(client *clientV2, params [][]byte) ([]byte, error) {
 	}
 
 	topic := p.ctx.nsqd.GetTopic(topicName)
-	msg := NewMessage(topic.GenerateID(), messageBody)
+	msg := NewMessage(topic.GenerateID(), 0, messageBody)
 	err = topic.PutMessage(msg)
 	if err != nil {
 		return nil, protocol.NewFatalClientErr(err, "E_PUB_FAILED", "PUB failed "+err.Error())
@@ -915,7 +915,7 @@ func (p *protocolV2) DPUB(client *clientV2, params [][]byte) ([]byte, error) {
 	}
 
 	topic := p.ctx.nsqd.GetTopic(topicName)
-	msg := NewMessage(topic.GenerateID(), messageBody)
+	msg := NewMessage(topic.GenerateID(), 0, messageBody)
 	msg.deferred = timeoutDuration
 	err = topic.PutMessage(msg)
 	if err != nil {
@@ -991,7 +991,7 @@ func readMPUB(r io.Reader, tmp []byte, topic *Topic, maxMessageSize int64, maxBo
 			return nil, protocol.NewFatalClientErr(err, "E_BAD_MESSAGE", "MPUB failed to read message body")
 		}
 
-		messages = append(messages, NewMessage(topic.GenerateID(), msgBody))
+		messages = append(messages, NewMessage(topic.GenerateID(), 0, msgBody))
 	}
 
 	return messages, nil

@@ -510,7 +510,7 @@ func TestHTTPEmptyTopicPOST(t *testing.T) {
 
 	topicName := "test_empty_topic_post" + strconv.Itoa(int(time.Now().Unix()))
 	topic := nsqds[0].GetTopic(topicName)
-	topic.PutMessage(nsqd.NewMessage(nsqd.MessageID{}, []byte("1234")))
+	topic.PutMessage(nsqd.NewMessage(nsqd.MessageID{}, 0, []byte("1234")))
 	test.Equal(t, int64(1), topic.Depth())
 	time.Sleep(100 * time.Millisecond)
 
@@ -539,7 +539,7 @@ func TestHTTPEmptyChannelPOST(t *testing.T) {
 	topicName := "test_empty_channel_post" + strconv.Itoa(int(time.Now().Unix()))
 	topic := nsqds[0].GetTopic(topicName)
 	channel := topic.GetChannel("ch")
-	channel.PutMessage(nsqd.NewMessage(nsqd.MessageID{}, []byte("1234")))
+	channel.PutMessage(nsqd.NewMessage(nsqd.MessageID{}, 0, []byte("1234")))
 
 	time.Sleep(100 * time.Millisecond)
 	test.Equal(t, int64(1), channel.Depth())

@@ -20,6 +20,7 @@ type Message struct {
 	Body      []byte
 	Timestamp int64
 	Attempts  uint16
+	Group     int
 
 	// for in-flight handling
 	deliveryTS time.Time
@@ -29,9 +30,10 @@ type Message struct {
 	deferred   time.Duration
 }
 
-func NewMessage(id MessageID, body []byte) *Message {
+func NewMessage(id MessageID, group int, body []byte) *Message {
 	return &Message{
 		ID:        id,
+		Group:     group,
 		Body:      body,
 		Timestamp: time.Now().UnixNano(),
 	}
