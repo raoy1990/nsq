@@ -1,4 +1,5 @@
 .godeps
+./idea/*
 vendor
 ./build
 .cover/

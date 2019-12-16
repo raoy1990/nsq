@@ -1,14 +1,18 @@
 package nsqd
 
+import "sync/atomic"
+
 type dummyBackendQueue struct {
 	readChan chan []byte
+	depth    int64
 }
 
 func newDummyBackendQueue() BackendQueue {
-	return &dummyBackendQueue{readChan: make(chan []byte)}
+	return &dummyBackendQueue{readChan: make(chan []byte), depth: 0}
 }
 
 func (d *dummyBackendQueue) Put([]byte) error {
+	atomic.AddInt64(&d.depth, 1)
 	return nil
 }
 
@@ -25,7 +29,7 @@ func (d *dummyBackendQueue) Delete() error {
 }
 
 func (d *dummyBackendQueue) Depth() int64 {
-	return int64(0)
+	return atomic.LoadInt64(&d.depth)
 }
 
 func (d *dummyBackendQueue) Empty() error {

@@ -223,13 +223,12 @@ func (s *httpServer) doPUB(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 
 	var msgGroup int64 = 0
-	if group, ok := reqParams["group"]; ok {
+	if group, ok := reqParams["Group"]; ok {
 		msgGroup, err = strconv.ParseInt(group[0], 10, 64)
 		if err != nil {
 			return nil, http_api.Err{400, "INVALID_GROUP"}
 		}
 	}
-
 	msg := NewMessage(topic.GenerateID(), int(msgGroup), body)
 	msg.deferred = deferred
 	err = topic.PutMessage(msg)
@@ -264,6 +263,14 @@ func (s *httpServer) doMPUB(w http.ResponseWriter, req *http.Request, ps httprou
 			s.ctx.nsqd.logf(LOG_WARN, "deprecated value '%s' used for /mpub binary param", vals[0])
 		}
 	}
+	var msgGroup int64 = 0
+	if group, ok := reqParams["Group"]; ok {
+		msgGroup, err = strconv.ParseInt(group[0], 10, 64)
+		if err != nil {
+			return nil, http_api.Err{400, "INVALID_GROUP"}
+		}
+	}
+
 	if binaryMode {
 		tmp := make([]byte, 4)
 		msgs, err = readMPUB(req.Body, tmp, topic,
@@ -304,8 +311,7 @@ func (s *httpServer) doMPUB(w http.ResponseWriter, req *http.Request, ps httprou
 			if int64(len(block)) > s.ctx.nsqd.getOpts().MaxMsgSize {
 				return nil, http_api.Err{413, "MSG_TOO_BIG"}
 			}
-
-			msg := NewMessage(topic.GenerateID(), 0, block)
+			msg := NewMessage(topic.GenerateID(), int(msgGroup), block)
 			msgs = append(msgs, msg)
 		}
 	}

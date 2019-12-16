@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"strconv"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -125,7 +126,6 @@ func (p *protocolV2) IOLoop(conn net.Conn) error {
 func (p *protocolV2) SendMessage(client *clientV2, msg *Message) error {
 	p.ctx.nsqd.logf(LOG_DEBUG, "PROTOCOL(V2): writing msg(%s) to client(%s) - %s", msg.ID, client, msg.Body)
 	var buf = &bytes.Buffer{}
-
 	_, err := msg.WriteTo(buf)
 	if err != nil {
 		return err
@@ -773,6 +773,7 @@ func (p *protocolV2) PUB(client *clientV2, params [][]byte) ([]byte, error) {
 			fmt.Sprintf("PUB topic name %q is not valid", topicName))
 	}
 
+	msgGroup, _ := strconv.ParseInt(string(params[2]), 10, 64)
 	bodyLen, err := readLen(client.Reader, client.lenSlice)
 	if err != nil {
 		return nil, protocol.NewFatalClientErr(err, "E_BAD_MESSAGE", "PUB failed to read message body size")
@@ -799,7 +800,7 @@ func (p *protocolV2) PUB(client *clientV2, params [][]byte) ([]byte, error) {
 	}
 
 	topic := p.ctx.nsqd.GetTopic(topicName)
-	msg := NewMessage(topic.GenerateID(), 0, messageBody)
+	msg := NewMessage(topic.GenerateID(), int(msgGroup), messageBody)
 	err = topic.PutMessage(msg)
 	if err != nil {
 		return nil, protocol.NewFatalClientErr(err, "E_PUB_FAILED", "PUB failed "+err.Error())

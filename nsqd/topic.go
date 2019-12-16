@@ -8,8 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nsqio/go-diskqueue"
-	"github.com/nsqio/nsq/internal/lg"
 	"github.com/nsqio/nsq/internal/quantile"
 	"github.com/nsqio/nsq/internal/util"
 )
@@ -61,7 +59,11 @@ func NewTopic(topicName string, ctx *context, deleteCallback func(*Topic)) *Topi
 	if ctx.nsqd.getOpts().MemQueueSize > 0 {
 		t.memoryMsgChan = make(chan *Message, ctx.nsqd.getOpts().MemQueueSize)
 	}
+	t.backend = newDummyBackendQueue()
 	if strings.HasSuffix(topicName, "#ephemeral") {
+		t.ephemeral = true
+	}
+	/*if strings.HasSuffix(topicName, "#ephemeral") {
 		t.ephemeral = true
 		t.backend = newDummyBackendQueue()
 	} else {
@@ -79,7 +81,7 @@ func NewTopic(topicName string, ctx *context, deleteCallback func(*Topic)) *Topi
 			ctx.nsqd.getOpts().SyncTimeout,
 			dqLogf,
 		)
-	}
+	}*/
 
 	t.waitGroup.Wrap(t.messagePump)
 
@@ -187,6 +189,7 @@ func (t *Topic) PutMessage(m *Message) error {
 	if err != nil {
 		return err
 	}
+
 	atomic.AddUint64(&t.messageCount, 1)
 	atomic.AddUint64(&t.messageBytes, uint64(len(m.Body)))
 	return nil
@@ -222,6 +225,7 @@ func (t *Topic) put(m *Message) error {
 	case t.memoryMsgChan <- m:
 	default:
 		//ignore the msg when the memory channel is full
+		t.ReplaceOldMessage(m)
 		/*default:
 		b := bufferPoolGet()
 		err := writeMessageToBackend(b, m, t.backend)
@@ -235,6 +239,12 @@ func (t *Topic) put(m *Message) error {
 		}*/
 	}
 	return nil
+}
+
+func (t *Topic) ReplaceOldMessage(m *Message) {
+	<-t.memoryMsgChan
+	t.memoryMsgChan <- m
+	t.backend.Put([]byte{})
 }
 
 func (t *Topic) Depth() int64 {

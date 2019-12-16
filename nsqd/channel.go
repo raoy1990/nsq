@@ -10,8 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nsqio/go-diskqueue"
-	"github.com/nsqio/nsq/internal/lg"
 	"github.com/nsqio/nsq/internal/pqueue"
 	"github.com/nsqio/nsq/internal/quantile"
 )
@@ -95,10 +93,10 @@ func NewChannel(topicName string, channelName string, ctx *context,
 
 	c.initPQ()
 
+	c.backend = newDummyBackendQueue()
 	if strings.HasSuffix(channelName, "#ephemeral") {
 		c.ephemeral = true
-		c.backend = newDummyBackendQueue()
-	} else {
+	} /*else {
 		dqLogf := func(level diskqueue.LogLevel, f string, args ...interface{}) {
 			opts := ctx.nsqd.getOpts()
 			lg.Logf(opts.Logger, opts.LogLevel, lg.LogLevel(level), f, args...)
@@ -115,7 +113,7 @@ func NewChannel(topicName string, channelName string, ctx *context,
 			ctx.nsqd.getOpts().SyncTimeout,
 			dqLogf,
 		)
-	}
+	}*/
 
 	c.ctx.nsqd.Notify(c)
 
@@ -307,6 +305,7 @@ func (c *Channel) put(m *Message) error {
 	select {
 	case c.memoryMsgChan <- m:
 	default:
+		c.ReplaceOldMessage(m)
 		/*b := bufferPoolGet()
 		err := writeMessageToBackend(b, m, c.backend)
 		bufferPoolPut(b)
@@ -318,6 +317,12 @@ func (c *Channel) put(m *Message) error {
 		}*/
 	}
 	return nil
+}
+
+func (c *Channel) ReplaceOldMessage(m *Message) {
+	<-c.memoryMsgChan
+	c.memoryMsgChan <- m
+	c.backend.Put([]byte{})
 }
 
 func (c *Channel) PutMessageDeferred(msg *Message, timeout time.Duration) {
@@ -586,6 +591,8 @@ func (c *Channel) processInFlightQueue(t int64) bool {
 			goto exit
 		}
 		atomic.AddUint64(&c.timeoutCount, 1)
+		//超时的消息直接丢弃，不再入队
+		continue
 		c.RLock()
 		client, ok := c.clients[msg.clientID]
 		c.RUnlock()
