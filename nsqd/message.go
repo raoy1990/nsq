@@ -40,12 +40,12 @@ func NewMessage(id MessageID, group int, body []byte) *Message {
 }
 
 func (m *Message) WriteTo(w io.Writer) (int64, error) {
-	var buf [12]byte
+	var buf [10]byte
+	var gbuf [2]byte
 	var total int64
 
 	binary.BigEndian.PutUint64(buf[:8], uint64(m.Timestamp))
 	binary.BigEndian.PutUint16(buf[8:10], uint16(m.Attempts))
-	binary.BigEndian.PutUint16(buf[10:12], uint16(m.Group))
 
 	n, err := w.Write(buf[:])
 	total += int64(n)
@@ -60,6 +60,13 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	n, err = w.Write(m.Body)
+	total += int64(n)
+	if err != nil {
+		return total, err
+	}
+
+	binary.BigEndian.PutUint16(buf[:2], uint16(m.Group))
+	n, err := w.Write(gbuf[:])
 	total += int64(n)
 	if err != nil {
 		return total, err
@@ -87,10 +94,10 @@ func decodeMessage(b []byte) (*Message, error) {
 
 	msg.Timestamp = int64(binary.BigEndian.Uint64(b[:8]))
 	msg.Attempts = binary.BigEndian.Uint16(b[8:10])
-	msg.Group = int(binary.BigEndian.Uint16(b[10:12]))
-	copy(msg.ID[:], b[12:12+MsgIDLength])
-	msg.Body = b[12+MsgIDLength:]
+	copy(msg.ID[:], b[10:10+MsgIDLength])
+	msg.Body = b[10+MsgIDLength : len(b)-2]
 
+	msg.Group = int(binary.BigEndian.Uint16(b[len(b)-2:]))
 	return &msg, nil
 }
 
